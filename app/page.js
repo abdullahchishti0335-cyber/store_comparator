@@ -4,6 +4,347 @@ import { useState, useEffect } from 'react'
 import { Search, TrendingDown, Store, Star, ShoppingCart, Heart, Share2, Zap, Package, ArrowUpRight, X } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts'
 
+// ALL STYLES IN JAVASCRIPT - NO CSS FILE NEEDED!
+const styles = {
+  container: {
+    minHeight: '100vh',
+    width: '100%',
+    background: 'linear-gradient(135deg, #0f172a 0%, #000000 50%, #1e293b 100%)',
+    color: 'white',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+  },
+  backgroundEffects: {
+    position: 'fixed',
+    inset: 0,
+    pointerEvents: 'none',
+    overflow: 'hidden',
+    zIndex: 0,
+  },
+  blurCircle: (color, delay = 0) => ({
+    position: 'absolute',
+    width: '500px',
+    height: '500px',
+    borderRadius: '50%',
+    filter: 'blur(100px)',
+    opacity: 0.15,
+    animation: `float 6s ease-in-out infinite ${delay}s`,
+    background: color,
+  }),
+  header: {
+    position: 'sticky',
+    top: 0,
+    zIndex: 50,
+    background: 'rgba(255,255,255,0.05)',
+    backdropFilter: 'blur(10px)',
+    borderBottom: '1px solid rgba(255,255,255,0.1)',
+    width: '100%',
+  },
+  headerContent: {
+    maxWidth: '1280px',
+    margin: '0 auto',
+    padding: '16px 24px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  logo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+  },
+  logoIcon: {
+    width: '48px',
+    height: '48px',
+    background: 'linear-gradient(135deg, #3b82f6, #9333ea)',
+    borderRadius: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 10px 30px rgba(59,130,246,0.3)',
+  },
+  logoText: {
+    fontSize: '24px',
+    fontWeight: 900,
+    background: 'linear-gradient(135deg, #3b82f6, #9333ea, #ec4899)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+  },
+  hero: {
+    position: 'relative',
+    zIndex: 40,
+    padding: '64px 24px',
+    textAlign: 'center',
+  },
+  heroTitle: {
+    fontSize: 'clamp(40px, 8vw, 72px)',
+    fontWeight: 900,
+    marginBottom: '24px',
+    lineHeight: 1.1,
+  },
+  gradientText: {
+    background: 'linear-gradient(135deg, #3b82f6, #9333ea, #ec4899)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+  },
+  heroSubtitle: {
+    fontSize: '20px',
+    color: '#94a3b8',
+    marginBottom: '40px',
+    maxWidth: '600px',
+    marginLeft: 'auto',
+    marginRight: 'auto',
+  },
+  searchContainer: {
+    position: 'relative',
+    maxWidth: '640px',
+    margin: '0 auto 32px',
+  },
+  searchGlow: {
+    position: 'absolute',
+    inset: '-4px',
+    background: 'linear-gradient(135deg, #2563eb, #9333ea)',
+    borderRadius: '16px',
+    opacity: 0.25,
+    filter: 'blur(8px)',
+  },
+  searchBar: {
+    position: 'relative',
+    background: 'rgba(255,255,255,0.05)',
+    backdropFilter: 'blur(10px)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: '16px',
+    padding: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+  },
+  searchInput: {
+    flex: 1,
+    background: 'transparent',
+    border: 'none',
+    outline: 'none',
+    color: 'white',
+    fontSize: '18px',
+    padding: '12px 16px',
+  },
+  searchButton: {
+    background: 'linear-gradient(135deg, #2563eb, #9333ea)',
+    color: 'white',
+    border: 'none',
+    padding: '12px 24px',
+    borderRadius: '12px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    transition: 'transform 0.2s',
+  },
+  categories: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: '12px',
+    marginBottom: '32px',
+  },
+  categoryButton: (active) => ({
+    padding: '10px 24px',
+    borderRadius: '9999px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    border: 'none',
+    background: active ? 'white' : 'rgba(255,255,255,0.05)',
+    color: active ? 'black' : '#94a3b8',
+    backdropFilter: active ? 'none' : 'blur(10px)',
+    border: active ? 'none' : '1px solid rgba(255,255,255,0.1)',
+    transition: 'all 0.3s',
+  }),
+  select: {
+    background: 'rgba(255,255,255,0.05)',
+    backdropFilter: 'blur(10px)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    color: '#94a3b8',
+    padding: '10px 24px',
+    borderRadius: '9999px',
+    outline: 'none',
+    cursor: 'pointer',
+  },
+  grid: {
+    maxWidth: '1280px',
+    margin: '0 auto',
+    padding: '0 24px 80px',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+    gap: '24px',
+  },
+  card: {
+    background: 'rgba(255,255,255,0.05)',
+    backdropFilter: 'blur(10px)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: '20px',
+    overflow: 'hidden',
+    transition: 'all 0.3s',
+    cursor: 'pointer',
+  },
+  cardHover: {
+    transform: 'translateY(-8px)',
+    boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  cardImage: {
+    width: '100%',
+    height: '224px',
+    objectFit: 'cover',
+  },
+  cardContent: {
+    padding: '24px',
+  },
+  cardHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '12px',
+  },
+  categoryTag: {
+    fontSize: '12px',
+    fontWeight: 700,
+    color: '#60a5fa',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+  },
+  rating: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    color: '#fbbf24',
+  },
+  productName: {
+    fontSize: '20px',
+    fontWeight: 700,
+    marginBottom: '16px',
+    lineHeight: 1.3,
+  },
+  priceRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '8px',
+  },
+  priceLabel: {
+    color: '#94a3b8',
+    fontSize: '14px',
+  },
+  bestPrice: {
+    fontSize: '32px',
+    fontWeight: 900,
+    color: '#4ade80',
+  },
+  oldPrice: {
+    color: '#64748b',
+    textDecoration: 'line-through',
+  },
+  storeTags: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '8px',
+    marginBottom: '16px',
+  },
+  storeTag: (isBest) => ({
+    padding: '4px 12px',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: 600,
+    background: isBest ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.05)',
+    color: isBest ? '#4ade80' : '#94a3b8',
+    border: isBest ? '1px solid rgba(74,222,128,0.3)' : '1px solid rgba(255,255,255,0.1)',
+  }),
+  cardButtons: {
+    display: 'flex',
+    gap: '12px',
+  },
+  buttonSecondary: {
+    flex: 1,
+    background: 'rgba(255,255,255,0.1)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    color: 'white',
+    padding: '12px',
+    borderRadius: '12px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+  },
+  buttonPrimary: {
+    flex: 1,
+    background: 'linear-gradient(135deg, #2563eb, #9333ea)',
+    border: 'none',
+    color: 'white',
+    padding: '12px',
+    borderRadius: '12px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+  },
+  modal: {
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(0,0,0,0.9)',
+    backdropFilter: 'blur(10px)',
+    zIndex: 100,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '24px',
+  },
+  modalContent: {
+    background: 'rgba(255,255,255,0.05)',
+    backdropFilter: 'blur(20px)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: '24px',
+    maxWidth: '1000px',
+    width: '100%',
+    maxHeight: '90vh',
+    overflow: 'auto',
+  },
+  modalHeader: {
+    padding: '24px',
+    borderBottom: '1px solid rgba(255,255,255,0.1)',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    background: 'linear-gradient(90deg, rgba(37,99,235,0.2), rgba(147,51,234,0.2))',
+  },
+  savingsBadge: {
+    position: 'absolute',
+    top: '16px',
+    left: '16px',
+    background: '#22c55e',
+    color: 'white',
+    padding: '6px 16px',
+    borderRadius: '9999px',
+    fontSize: '14px',
+    fontWeight: 700,
+  },
+  favoriteButton: (isFav) => ({
+    position: 'absolute',
+    top: '16px',
+    right: '16px',
+    width: '40px',
+    height: '40px',
+    borderRadius: '50%',
+    border: 'none',
+    background: isFav ? '#ef4444' : 'rgba(0,0,0,0.5)',
+    color: 'white',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backdropFilter: 'blur(10px)',
+  }),
+}
+
 export default function PriceComparator() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -12,6 +353,7 @@ export default function PriceComparator() {
   const [sortBy, setSortBy] = useState('relevance')
   const [favorites, setFavorites] = useState([])
   const [selectedProduct, setSelectedProduct] = useState(null)
+  const [hoveredCard, setHoveredCard] = useState(null)
 
   const categories = ['all', 'Electronics', 'Fashion', 'Home', 'Gaming']
 
@@ -37,244 +379,217 @@ export default function PriceComparator() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white overflow-x-hidden">
-      {/* Background Effects */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-blue-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float"></div>
-        <div className="absolute top-0 -right-20 w-96 h-96 bg-purple-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" style={{animationDelay: '2s'}}></div>
-        <div className="absolute -bottom-40 left-20 w-96 h-96 bg-pink-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" style={{animationDelay: '4s'}}></div>
+    <div style={styles.container}>
+      {/* Inject keyframes */}
+      <style>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-20px); }
+        }
+      `}</style>
+
+      {/* Background */}
+      <div style={styles.backgroundEffects}>
+        <div style={{...styles.blurCircle('#2563eb', 0), top: '-100px', left: '-100px'}} />
+        <div style={{...styles.blurCircle('#9333ea', 2), top: '0', right: '-50px'}} />
+        <div style={{...styles.blurCircle('#ec4899', 4), bottom: '-100px', left: '100px'}} />
       </div>
 
       {/* Header */}
-      <header className="relative z-50 glass sticky top-0 border-b border-white/10 w-full">
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
-                <Zap className="w-7 h-7 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-black gradient-text">PriceWise</h1>
-                <p className="text-xs text-gray-400">Compare & Save</p>
-              </div>
+      <header style={styles.header}>
+        <div style={styles.headerContent}>
+          <div style={styles.logo}>
+            <div style={styles.logoIcon}>
+              <Zap size={28} color="white" />
             </div>
-            <div className="flex items-center space-x-6 text-sm text-gray-300">
-              <span className="flex items-center space-x-1 hover:text-white cursor-pointer">
-                <TrendingDown className="w-4 h-4" />
-                <span className="hidden sm:inline">Deals</span>
-              </span>
-              <span className="flex items-center space-x-1 hover:text-white cursor-pointer">
-                <Heart className="w-4 h-4" />
-                <span>({favorites.length})</span>
-              </span>
-            </div>
+            <span style={styles.logoText}>PriceWise</span>
+          </div>
+          <div style={{display: 'flex', gap: '24px', color: '#94a3b8'}}>
+            <span style={{display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer'}}>
+              <TrendingDown size={18} /> Deals
+            </span>
+            <span style={{display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer'}}>
+              <Heart size={18} /> ({favorites.length})
+            </span>
           </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative z-40 w-full px-4 sm:px-6 lg:px-8 py-16">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight">
-            Find the <span className="gradient-text">Best Deals</span>
-          </h1>
-          <p className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto">
-            Compare prices across top stores instantly. Save money on every purchase.
-          </p>
+      {/* Hero */}
+      <section style={styles.hero}>
+        <h1 style={styles.heroTitle}>
+          Find the <span style={styles.gradientText}>Best Deals</span>
+        </h1>
+        <p style={styles.heroSubtitle}>
+          Compare prices across top stores instantly. Save money on every purchase.
+        </p>
 
-          {/* Search Bar */}
-          <div className="relative max-w-2xl mx-auto mb-8">
-            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-25"></div>
-            <div className="relative glass rounded-2xl p-2 flex items-center shadow-2xl">
-              <Search className="w-6 h-6 text-gray-400 ml-4" />
-              <input
-                type="text"
-                placeholder="Search products..."
-                className="flex-1 bg-transparent border-none outline-none px-4 py-3 text-lg text-white placeholder-gray-500"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <button 
-                onClick={fetchProducts}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-bold transition-transform hover:scale-105"
-              >
-                Search
-              </button>
-            </div>
+        <div style={styles.searchContainer}>
+          <div style={styles.searchGlow} />
+          <div style={styles.searchBar}>
+            <Search size={24} color="#64748b" style={{marginLeft: '12px'}} />
+            <input
+              type="text"
+              placeholder="Search products..."
+              style={styles.searchInput}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button 
+              onClick={fetchProducts}
+              style={styles.searchButton}
+              onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+              onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+            >
+              Search
+            </button>
           </div>
-
-          {/* Categories */}
-          <div className="flex flex-wrap justify-center gap-3 mb-8">
-            {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-6 py-2 rounded-full capitalize font-medium transition-all ${
-                  selectedCategory === cat 
-                    ? 'bg-white text-black shadow-lg' 
-                    : 'glass text-gray-300 hover:bg-white/10'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-
-          {/* Sort */}
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="glass px-6 py-2 rounded-full text-gray-300 outline-none cursor-pointer"
-          >
-            <option value="relevance">Sort by Relevance</option>
-            <option value="price-low">Price: Low to High</option>
-            <option value="price-high">Price: High to Low</option>
-            <option value="rating">Highest Rated</option>
-          </select>
         </div>
+
+        <div style={styles.categories}>
+          {categories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              style={styles.categoryButton(selectedCategory === cat)}
+            >
+              {cat.charAt(0).toUpperCase() + cat.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+          style={styles.select}
+        >
+          <option value="relevance" style={{background: '#0f172a'}}>Sort by Relevance</option>
+          <option value="price-low" style={{background: '#0f172a'}}>Price: Low to High</option>
+          <option value="price-high" style={{background: '#0f172a'}}>Price: High to Low</option>
+          <option value="rating" style={{background: '#0f172a'}}>Highest Rated</option>
+        </select>
       </section>
 
-      {/* Products Grid */}
-      <section className="relative z-40 w-full px-4 sm:px-6 lg:px-8 pb-20">
-        <div className="max-w-7xl mx-auto">
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1,2,3,4,5,6].map(i => (
-                <div key={i} className="glass rounded-2xl h-96 animate-pulse bg-white/5"></div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {products.map(product => (
-                <ProductCard 
-                  key={product.id} 
-                  product={product} 
-                  isFavorite={favorites.includes(product.id)}
-                  onToggleFavorite={() => toggleFavorite(product.id)}
-                  onViewDetails={() => setSelectedProduct(product)}
+      {/* Products */}
+      <section style={styles.grid}>
+        {loading ? (
+          [1,2,3,4,5,6].map(i => (
+            <div key={i} style={{...styles.card, height: '400px', animation: 'pulse 2s infinite'}} />
+          ))
+        ) : (
+          products.map(product => (
+            <div 
+              key={product.id}
+              style={{...styles.card, ...(hoveredCard === product.id ? styles.cardHover : {})}}
+              onMouseEnter={() => setHoveredCard(product.id)}
+              onMouseLeave={() => setHoveredCard(null)}
+            >
+              <div style={{position: 'relative'}}>
+                <img 
+                  src={product.image} 
+                  alt={product.name}
+                  style={styles.cardImage}
                 />
-              ))}
+                <button 
+                  onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }}
+                  style={styles.favoriteButton(favorites.includes(product.id))}
+                >
+                  <Heart size={20} fill={favorites.includes(product.id) ? "white" : "none"} />
+                </button>
+                {product.savings > 0 && (
+                  <div style={styles.savingsBadge}>Save ${product.savings}</div>
+                )}
+              </div>
+
+              <div style={styles.cardContent}>
+                <div style={styles.cardHeader}>
+                  <span style={styles.categoryTag}>{product.category}</span>
+                  <div style={styles.rating}>
+                    <Star size={16} fill="#fbbf24" color="#fbbf24" />
+                    <span style={{fontSize: '14px', fontWeight: 600}}>{product.bestStore.rating}</span>
+                  </div>
+                </div>
+
+                <h3 style={styles.productName}>{product.name}</h3>
+
+                <div style={styles.priceRow}>
+                  <span style={styles.priceLabel}>Best Price</span>
+                  <span style={styles.bestPrice}>${product.bestPrice}</span>
+                </div>
+                <div style={{...styles.priceRow, marginBottom: '16px'}}>
+                  <span style={styles.priceLabel}>Was</span>
+                  <span style={styles.oldPrice}>${product.worstPrice}</span>
+                </div>
+
+                <div style={styles.storeTags}>
+                  {product.stores.slice(0, 3).map((store, idx) => (
+                    <span key={idx} style={styles.storeTag(store.price === product.bestPrice)}>
+                      {store.name}
+                    </span>
+                  ))}
+                </div>
+
+                <div style={styles.cardButtons}>
+                  <button 
+                    onClick={() => setSelectedProduct(product)}
+                    style={styles.buttonSecondary}
+                  >
+                    Compare <ArrowUpRight size={18} />
+                  </button>
+                  <a 
+                    href={product.bestStore.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{...styles.buttonPrimary, textDecoration: 'none'}}
+                  >
+                    <ShoppingCart size={18} /> Buy Now
+                  </a>
+                </div>
+              </div>
             </div>
-          )}
-        </div>
+          ))
+        )}
       </section>
 
       {/* Modal */}
       {selectedProduct && (
-        <ProductModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
+        <ProductModal 
+          product={selectedProduct} 
+          onClose={() => setSelectedProduct(null)} 
+          styles={styles}
+        />
       )}
     </div>
   )
 }
 
-function ProductCard({ product, isFavorite, onToggleFavorite, onViewDetails }) {
+function ProductModal({ product, onClose, styles }) {
   return (
-    <div className="glass rounded-2xl overflow-hidden glass-hover transition-all duration-300 group">
-      <div className="relative h-56 overflow-hidden">
-        <img 
-          src={product.image} 
-          alt={product.name}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-        />
-        <button 
-          onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
-          className={`absolute top-4 right-4 p-2 rounded-full backdrop-blur-md transition-all ${
-            isFavorite ? 'bg-red-500 text-white' : 'bg-black/50 text-white hover:bg-black/70'
-          }`}
-        >
-          <Heart className={`w-5 h-5 ${isFavorite ? 'fill-current' : ''}`} />
-        </button>
-        {product.savings > 0 && (
-          <div className="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">
-            Save ${product.savings}
-          </div>
-        )}
-      </div>
-
-      <div className="p-6">
-        <div className="flex justify-between items-start mb-2">
-          <span className="text-xs font-bold text-blue-400 uppercase">{product.category}</span>
-          <div className="flex items-center text-yellow-400">
-            <Star className="w-4 h-4 fill-current" />
-            <span className="ml-1 text-sm font-bold">{product.bestStore.rating}</span>
-          </div>
-        </div>
-
-        <h3 className="text-xl font-bold mb-3 text-white line-clamp-2">{product.name}</h3>
-
-        <div className="space-y-2 mb-4">
-          <div className="flex justify-between items-center">
-            <span className="text-gray-400 text-sm">Best Price</span>
-            <span className="text-3xl font-black text-green-400">${product.bestPrice}</span>
-          </div>
-          <div className="flex justify-between text-sm text-gray-500">
-            <span>Was</span>
-            <span className="line-through">${product.worstPrice}</span>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2 mb-4">
-          {product.stores.slice(0, 3).map((store, idx) => (
-            <span 
-              key={idx}
-              className={`text-xs px-2 py-1 rounded ${
-                store.price === product.bestPrice 
-                  ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-                  : 'bg-white/5 text-gray-400'
-              }`}
-            >
-              {store.name}
-            </span>
-          ))}
-        </div>
-
-        <div className="flex space-x-3">
+    <div style={styles.modal} onClick={onClose}>
+      <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
+        <div style={styles.modalHeader}>
+          <h2 style={{...styles.gradientText, fontSize: '24px', fontWeight: 700}}>{product.name}</h2>
           <button 
-            onClick={onViewDetails}
-            className="flex-1 glass py-3 rounded-xl font-bold hover:bg-white/10 transition-all flex items-center justify-center space-x-2"
+            onClick={onClose}
+            style={{background: 'none', border: 'none', color: 'white', cursor: 'pointer'}}
           >
-            <span>Compare</span>
-            <ArrowUpRight className="w-4 h-4" />
-          </button>
-          <a 
-            href={product.bestStore.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 rounded-xl font-bold transition-all flex items-center justify-center space-x-2"
-          >
-            <ShoppingCart className="w-4 h-4" />
-            <span>Buy Now</span>
-          </a>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function ProductModal({ product, onClose }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md" onClick={onClose}>
-      <div 
-        className="glass rounded-3xl max-w-5xl w-full max-h-[90vh] overflow-y-auto border border-white/20"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="sticky top-0 glass border-b border-white/10 p-6 flex justify-between items-center bg-gradient-to-r from-blue-600/20 to-purple-600/20">
-          <h2 className="text-2xl font-bold gradient-text">{product.name}</h2>
-          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full">
-            <X className="w-6 h-6" />
+            <X size={28} />
           </button>
         </div>
 
-        <div className="p-6 grid lg:grid-cols-2 gap-8">
-          <div className="space-y-6">
-            <img src={product.image} alt={product.name} className="w-full h-64 object-cover rounded-2xl" />
+        <div style={{padding: '24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px'}}>
+          <div>
+            <img 
+              src={product.image} 
+              alt={product.name} 
+              style={{width: '100%', height: '250px', objectFit: 'cover', borderRadius: '16px', marginBottom: '24px'}} 
+            />
             
-            <div className="glass rounded-2xl p-4">
-              <h3 className="text-lg font-bold mb-4 flex items-center">
-                <TrendingDown className="w-5 h-5 text-blue-400 mr-2" />
-                Price History
+            <div style={{background: 'rgba(255,255,255,0.05)', borderRadius: '16px', padding: '20px', border: '1px solid rgba(255,255,255,0.1)'}}>
+              <h3 style={{fontSize: '18px', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px'}}>
+                <TrendingDown size={20} color="#60a5fa" /> Price History
               </h3>
-              <div className="h-48">
+              <div style={{height: '200px'}}>
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={product.priceHistory}>
                     <defs>
@@ -297,52 +612,70 @@ function ProductModal({ product, onClose }) {
             </div>
           </div>
 
-          <div className="space-y-4">
-            <h3 className="text-lg font-bold">Store Comparison</h3>
+          <div>
+            <h3 style={{fontSize: '20px', fontWeight: 700, marginBottom: '16px'}}>Store Comparison</h3>
             {product.stores.map((store, idx) => (
               <div 
                 key={idx}
-                className={`glass rounded-xl p-4 flex items-center justify-between border ${
-                  store.price === product.bestPrice ? 'border-green-500/50 bg-green-500/10' : 'border-white/10'
-                }`}
+                style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  marginBottom: '12px',
+                  border: store.price === product.bestPrice ? '1px solid rgba(74,222,128,0.5)' : '1px solid rgba(255,255,255,0.1)',
+                  backgroundColor: store.price === product.bestPrice ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.05)',
+                }}
               >
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center">
-                    <Store className="w-6 h-6 text-gray-400" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold">{store.name}</h4>
-                    <div className="flex items-center space-x-3 text-sm text-gray-400">
-                      <span className="flex items-center"><Star className="w-3 h-3 text-yellow-400 fill-current mr-1" />{store.rating}</span>
-                      <span>{store.shipping}</span>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                  <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                    <div style={{width: '48px', height: '48px', background: 'rgba(255,255,255,0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                      <Store size={24} color="#94a3b8" />
+                    </div>
+                    <div>
+                      <h4 style={{fontWeight: 700}}>{store.name}</h4>
+                      <div style={{display: 'flex', alignItems: 'center', gap: '8px', color: '#94a3b8', fontSize: '14px'}}>
+                        <Star size={14} fill="#fbbf24" color="#fbbf24" /> {store.rating} • {store.shipping}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-white">${store.price}</div>
-                  {store.price === product.bestPrice && <span className="text-xs text-green-400">Best Deal</span>}
+                  <div style={{textAlign: 'right'}}>
+                    <div style={{fontSize: '24px', fontWeight: 900}}>${store.price}</div>
+                    {store.price === product.bestPrice && (
+                      <span style={{color: '#4ade80', fontSize: '12px', fontWeight: 700}}>BEST DEAL</span>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
 
             {product.savings > 0 && (
-              <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-xl p-4 flex justify-between items-center">
+              <div style={{
+                background: 'linear-gradient(90deg, rgba(74,222,128,0.2), rgba(16,185,129,0.2))',
+                border: '1px solid rgba(74,222,128,0.3)',
+                borderRadius: '12px',
+                padding: '20px',
+                marginTop: '20px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}>
                 <div>
-                  <p className="text-green-400 font-bold">You Save</p>
-                  <p className="text-sm text-gray-400">vs highest price</p>
+                  <p style={{color: '#4ade80', fontWeight: 700, fontSize: '18px'}}>You Save</p>
+                  <p style={{color: '#94a3b8', fontSize: '14px'}}>vs highest price</p>
                 </div>
-                <div className="text-3xl font-black text-green-400">${product.savings} <span className="text-lg">({product.savingsPercent}%)</span></div>
+                <div style={{textAlign: 'right'}}>
+                  <div style={{fontSize: '36px', fontWeight: 900, color: '#4ade80'}}>${product.savings}</div>
+                  <div style={{color: '#4ade80', fontWeight: 700}}>({product.savingsPercent}% off)</div>
+                </div>
               </div>
             )}
 
-            <div className="flex space-x-3 mt-6">
-              <button className="flex-1 glass py-3 rounded-xl font-bold hover:bg-white/10 flex items-center justify-center space-x-2">
-                <Share2 className="w-5 h-5" />
-                <span>Share</span>
+            <div style={{display: 'flex', gap: '12px', marginTop: '24px'}}>
+              <button style={{...styles.buttonSecondary, flex: 1}}>
+                <Share2 size={20} /> Share
               </button>
-              <button className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 py-3 rounded-xl font-bold flex items-center justify-center space-x-2">
-                <Package className="w-5 h-5" />
-                <span>Track Price</span>
+              <button style={{...styles.buttonPrimary, flex: 1}}>
+                <Package size={20} /> Track Price
               </button>
             </div>
           </div>

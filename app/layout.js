@@ -1,12 +1,12 @@
 export const metadata = {
-  title: 'PriceWise - Smart Price Comparator',
-  description: 'Compare prices across multiple stores in real-time',
+  title: 'PriceWise - Price Comparator',
+  description: 'Compare prices across stores',
 }
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <body style={{margin: 0, padding: 0}}>{children}</body>
     </html>
   )
 }
