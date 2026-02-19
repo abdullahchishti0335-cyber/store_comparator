@@ -72,7 +72,7 @@ export default function PriceComparator() {
         </div>
       </header>
 
-      {/* Hero Section - CENTERED */}
+      {/* Hero Section */}
       <section className="relative z-40 w-full px-4 sm:px-6 lg:px-8 py-16">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight">
@@ -134,7 +134,7 @@ export default function PriceComparator() {
         </div>
       </section>
 
-      {/* Products Grid - CENTERED */}
+      {/* Products Grid */}
       <section className="relative z-40 w-full px-4 sm:px-6 lg:px-8 pb-20">
         <div className="max-w-7xl mx-auto">
           {loading ? (
@@ -278,4 +278,76 @@ function ProductModal({ product, onClose }) {
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={product.priceHistory}>
                     <defs>
-                      <linearGradient id="colorPrice" x1="0" y1="0" x
+                      <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <XAxis dataKey="date" stroke="rgba(255,255,255,0.5)" fontSize={12} />
+                    <YAxis stroke="rgba(255,255,255,0.5)" fontSize={12} tickFormatter={(v) => `$${v}`} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: 'rgba(0,0,0,0.9)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px' }}
+                      formatter={(v) => [`$${v}`, 'Price']}
+                    />
+                    <Area type="monotone" dataKey="price" stroke="#3b82f6" strokeWidth={3} fill="url(#colorPrice)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-lg font-bold">Store Comparison</h3>
+            {product.stores.map((store, idx) => (
+              <div 
+                key={idx}
+                className={`glass rounded-xl p-4 flex items-center justify-between border ${
+                  store.price === product.bestPrice ? 'border-green-500/50 bg-green-500/10' : 'border-white/10'
+                }`}
+              >
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center">
+                    <Store className="w-6 h-6 text-gray-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold">{store.name}</h4>
+                    <div className="flex items-center space-x-3 text-sm text-gray-400">
+                      <span className="flex items-center"><Star className="w-3 h-3 text-yellow-400 fill-current mr-1" />{store.rating}</span>
+                      <span>{store.shipping}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-white">${store.price}</div>
+                  {store.price === product.bestPrice && <span className="text-xs text-green-400">Best Deal</span>}
+                </div>
+              </div>
+            ))}
+
+            {product.savings > 0 && (
+              <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-xl p-4 flex justify-between items-center">
+                <div>
+                  <p className="text-green-400 font-bold">You Save</p>
+                  <p className="text-sm text-gray-400">vs highest price</p>
+                </div>
+                <div className="text-3xl font-black text-green-400">${product.savings} <span className="text-lg">({product.savingsPercent}%)</span></div>
+              </div>
+            )}
+
+            <div className="flex space-x-3 mt-6">
+              <button className="flex-1 glass py-3 rounded-xl font-bold hover:bg-white/10 flex items-center justify-center space-x-2">
+                <Share2 className="w-5 h-5" />
+                <span>Share</span>
+              </button>
+              <button className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 py-3 rounded-xl font-bold flex items-center justify-center space-x-2">
+                <Package className="w-5 h-5" />
+                <span>Track Price</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
