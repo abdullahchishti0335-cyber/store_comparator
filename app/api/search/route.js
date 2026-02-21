@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-// Apify API token (get from https://console.apify.com/account/integrations)
+const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY
 const APIFY_TOKEN = process.env.APIFY_TOKEN
 
 export async function POST(request) {
@@ -18,7 +18,7 @@ export async function POST(request) {
   const errors = []
   const sourcesUsed = []
 
-  // 1. AMAZON API - Still use RapidAPI (it's working)
+  // 1. AMAZON API - REAL DATA (Fast)
   if (!stores || stores.includes('Amazon')) {
     try {
       console.log('Calling Amazon API (RapidAPI)...')
@@ -26,7 +26,7 @@ export async function POST(request) {
         `https://real-time-amazon-data.p.rapidapi.com/search?query=${encodeURIComponent(query)}&page=1&country=US`,
         {
           headers: {
-            'X-RapidAPI-Key': process.env.RAPIDAPI_KEY,
+            'X-RapidAPI-Key': RAPIDAPI_KEY,
             'X-RapidAPI-Host': 'real-time-amazon-data.p.rapidapi.com'
           },
           cache: 'no-store'
@@ -71,12 +71,12 @@ export async function POST(request) {
     }
   }
 
-  // 2. APIFY GOOGLE SHOPPING SCRAPER - For Walmart, Target, eBay, etc.
+  // 2. APIFY GOOGLE SHOPPING SCRAPER - With longer timeout
   if (!stores || stores.some(s => ['Walmart', 'Target', 'eBay', 'Best Buy'].includes(s))) {
     try {
       console.log('Calling Apify Google Shopping Scraper...')
 
-      // Start the actor run
+      // Start the actor run with shorter timeout settings
       const runResponse = await fetch('https://api.apify.com/v2/acts/consummate_mandala~google-shopping-scraper/runs', {
         method: 'POST',
         headers: {
@@ -85,9 +85,10 @@ export async function POST(request) {
         },
         body: JSON.stringify({
           searchQueries: [query],
-          maxResultsPerQuery: 10,
+          maxResultsPerQuery: 8, // Reduced for faster results
           country: 'us',
-          useResidentialProxy: false
+          useResidentialProxy: false,
+          timeout: 20 // 20 seconds max for the scraper
         })
       })
 
@@ -99,12 +100,12 @@ export async function POST(request) {
       const runId = runData.data.id
       const datasetId = runData.data.defaultDatasetId
 
-      console.log(`Apify run started: ${runId}, dataset: ${datasetId}`)
+      console.log(`Apify run started: ${runId}`)
 
-      // Wait for run to complete (poll for status)
+      // Wait for run to complete with longer timeout (45 seconds total)
       let runComplete = false
       let attempts = 0
-      const maxAttempts = 30 // 30 seconds timeout
+      const maxAttempts = 45 // 45 seconds
 
       while (!runComplete && attempts < maxAttempts) {
         await new Promise(resolve => setTimeout(resolve, 1000))
@@ -117,17 +118,31 @@ export async function POST(request) {
 
         if (statusResponse.ok) {
           const statusData = await statusResponse.json()
-          if (statusData.data.status === 'SUCCEEDED') {
+          const status = statusData.data.status
+
+          if (status === 'SUCCEEDED') {
             runComplete = true
-          } else if (statusData.data.status === 'FAILED') {
-            throw new Error('Apify run failed')
+            console.log('Apify run completed successfully')
+          } else if (status === 'FAILED' || status === 'TIMED_OUT' || status === 'ABORTED') {
+            throw new Error(`Apify run ${status}`)
           }
         }
         attempts++
       }
 
       if (!runComplete) {
-        throw new Error('Apify run timeout')
+        // Try to abort the run if it's taking too long
+        try {
+          await fetch(`https://api.apify.com/v2/actor-runs/${runId}/abort`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${APIFY_TOKEN}`
+            }
+          })
+        } catch (e) {
+          // Ignore abort errors
+        }
+        throw new Error('Apify run timeout (45s) - scraper took too long')
       }
 
       // Get results from dataset
@@ -146,15 +161,12 @@ export async function POST(request) {
 
       // Process each product
       products.forEach((p, idx) => {
-        // Extract store name from seller or source
         const sellerName = (p.seller || p.source || '').toLowerCase()
-        console.log(`Product ${idx} seller: "${sellerName}"`)
 
         let storeName = null
         let storeLogo = '🏪'
         let storeColor = '#666666'
 
-        // Flexible matching for store names
         if (sellerName.includes('walmart')) {
           storeName = 'Walmart'
           storeLogo = '🛒'
@@ -173,18 +185,9 @@ export async function POST(request) {
           storeColor = '#0046BE'
         }
 
-        // Skip if not a requested store
-        if (!storeName) {
-          console.log(`  Skipping: unknown seller "${sellerName}"`)
-          return
-        }
+        if (!storeName) return
+        if (stores && !stores.includes(storeName)) return
 
-        if (stores && !stores.includes(storeName)) {
-          console.log(`  Skipping: ${storeName} not selected`)
-          return
-        }
-
-        // Extract price
         let price = 0
         if (p.price) {
           if (typeof p.price === 'string') {
@@ -201,7 +204,6 @@ export async function POST(request) {
         const image = p.image || p.thumbnail
 
         if (price > 0 && title) {
-          // Avoid duplicates
           const isDuplicate = allResults.some(r => 
             r.store === storeName && 
             r.title.toLowerCase().includes(title.toLowerCase().substring(0, 20))
@@ -229,12 +231,11 @@ export async function POST(request) {
             if (!sourcesUsed.includes(storeName)) {
               sourcesUsed.push(storeName)
             }
-            console.log(`  ✅ Added ${storeName}: ${title.substring(0, 50)}...`)
           }
         }
       })
 
-      console.log(`✅ Apify: processed ${products.length} products`)
+      console.log(`✅ Apify: processed, found: ${sourcesUsed.filter(s => s !== 'Amazon').join(', ')}`)
 
     } catch (e) {
       console.error('Apify error:', e)
@@ -242,7 +243,7 @@ export async function POST(request) {
     }
   }
 
-  // Calculate savings and rankings
+  // Calculate savings
   if (allResults.length > 0) {
     allResults.sort((a, b) => a.price - b.price)
 
