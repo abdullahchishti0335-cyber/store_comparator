@@ -57,11 +57,24 @@
 1. **Clone the repo:**
    ```bash
    git clone https://github.com/abdullahchishti0335-cyber/PriceWise-Live.git
+2. **Install dependencies:**
+   ```bash
+   npm install
+3. **Add API Keys:** Create a .env.local file:
+   ```bash
+   RAPIDAPI_KEY=your_key_here
+   SERPER_API_KEY=your_key_here
+
+4. **Run Dev Server:**
+    ```bash
+    npm run dev
+
+
 
 ## 🤝 Credits & Acknowledgments
-Lead Developer: Muhammad Abdullah Rajpoot 💻
-Inspiration: Built for the global community of price hunters.
-Special Thanks: RapidAPI & Serper.dev for the robust data feeds.
+1. Lead Developer: Muhammad Abdullah Rajpoot 💻
+2. Inspiration: Built for the global community of price hunters.
+3. Special Thanks: RapidAPI & Serper.dev for the robust data feeds.
 
 
 ## 📄 License
