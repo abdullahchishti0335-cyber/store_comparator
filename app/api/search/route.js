@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 // Get from Vercel environment variables
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY
 const EBAY_API_HOST = process.env.EBAY_API_HOST || 'ebay-search-result.p.rapidapi.com'
-const WALMART_API_HOST = process.env.WALMART_API_HOST || 'axesso-walmart-data-service.p.rapidapi.com'
+const WALMART_API_HOST = process.env.WALMART_API_HOST || 'walmart-real-time.p.rapidapi.com'
 const TARGET_API_HOST = process.env.TARGET_API_HOST || 'target-com-shopping-api.p.rapidapi.com'
 
 export async function POST(request) {
