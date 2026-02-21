@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Search, TrendingDown, Star, ShoppingCart, RefreshCw } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Search, TrendingDown, Star, ShoppingCart, RefreshCw, AlertCircle } from 'lucide-react'
 
 const styles = {
   container: {
@@ -253,21 +253,35 @@ const styles = {
     fontSize: '14px',
     fontWeight: 600,
   },
+  alertBox: {
+    background: 'rgba(234, 179, 8, 0.1)',
+    border: '1px solid rgba(234, 179, 8, 0.3)',
+    borderRadius: '12px',
+    padding: '16px',
+    marginBottom: '24px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    color: '#eab308',
+  },
 }
 
-const AVAILABLE_STORES = [
+// Available stores configuration - will be dynamically updated based on results
+const DEFAULT_STORES = [
   { name: 'Amazon', color: '#FF9900', logo: '📦' },
-  { name: 'eBay', color: '#E53238', logo: '🏷️' },
   { name: 'Walmart', color: '#0071CE', logo: '🛒' },
   { name: 'Target', color: '#CC0000', logo: '🎯' },
+  { name: 'eBay', color: '#E53238', logo: '🏷️' },
+  { name: 'Best Buy', color: '#0046BE', logo: '💻' },
 ]
 
 export default function LivePriceComparator() {
   const [query, setQuery] = useState('')
-  const [selectedStores, setSelectedStores] = useState(['Amazon', 'eBay', 'Walmart', 'Target'])
+  const [selectedStores, setSelectedStores] = useState(['Amazon', 'Walmart', 'Target', 'eBay'])
   const [loading, setLoading] = useState(false)
   const [searchResults, setSearchResults] = useState(null)
   const [searchProgress, setSearchProgress] = useState(0)
+  const [availableStores, setAvailableStores] = useState(DEFAULT_STORES)
 
   const toggleStore = (storeName) => {
     setSelectedStores(prev => 
@@ -279,26 +293,45 @@ export default function LivePriceComparator() {
 
   const performLiveSearch = async () => {
     if (!query.trim() || selectedStores.length === 0) return
-    
+
     setLoading(true)
     setSearchResults(null)
     setSearchProgress(0)
-    
+
     const progressInterval = setInterval(() => {
       setSearchProgress(prev => Math.min(prev + 10, 90))
     }, 200)
-    
+
     try {
       const response = await fetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, stores: selectedStores })
       })
-      
+
       const data = await response.json()
-      
+
       if (data.success) {
         setSearchResults(data)
+
+        // Update available stores based on results
+        if (data.meta?.storesFound) {
+          const foundStores = data.meta.storesFound
+          const updatedStores = DEFAULT_STORES.filter(s => foundStores.includes(s.name))
+
+          // Add any stores not in default list
+          foundStores.forEach(storeName => {
+            if (!updatedStores.find(s => s.name === storeName)) {
+              updatedStores.push({
+                name: storeName,
+                color: '#666666',
+                logo: '🏪'
+              })
+            }
+          })
+
+          setAvailableStores(updatedStores)
+        }
       } else {
         console.error('Search failed:', data.error)
       }
@@ -309,6 +342,13 @@ export default function LivePriceComparator() {
       setSearchProgress(100)
       setTimeout(() => setLoading(false), 500)
     }
+  }
+
+  // Get store config for a result item
+  const getStoreConfig = (storeName) => {
+    return availableStores.find(s => s.name === storeName) || 
+           DEFAULT_STORES.find(s => s.name === storeName) ||
+           { name: storeName, color: '#666666', logo: '🏪' }
   }
 
   return (
@@ -341,7 +381,7 @@ export default function LivePriceComparator() {
           Find the <span style={styles.gradientText}>Best Price</span> Live
         </h2>
         <p style={styles.heroSubtitle}>
-          Real-time price comparison across Amazon, eBay, Walmart & more
+          Real-time price comparison across Amazon, Walmart, Target & more via Google Shopping
         </p>
 
         <div style={styles.searchContainer}>
@@ -373,7 +413,7 @@ export default function LivePriceComparator() {
         </div>
 
         <div style={styles.storeSelector}>
-          {AVAILABLE_STORES.map(store => (
+          {DEFAULT_STORES.map(store => (
             <button
               key={store.name}
               onClick={() => toggleStore(store.name)}
@@ -389,6 +429,17 @@ export default function LivePriceComparator() {
       {/* Results */}
       {searchResults && (
         <section style={styles.grid}>
+          {/* Alert if some stores not found */}
+          {searchResults.meta?.sourcesUsed && searchResults.meta.sourcesUsed.length < selectedStores.length && (
+            <div style={styles.alertBox}>
+              <AlertCircle size={20} />
+              <span>
+                Showing results from {searchResults.meta.sourcesUsed.join(', ')}. 
+                Other selected stores may not have this product.
+              </span>
+            </div>
+          )}
+
           {/* Stats */}
           <div style={styles.statsGrid}>
             <div style={styles.statCard}>
@@ -413,66 +464,74 @@ export default function LivePriceComparator() {
           {searchResults?.meta?.storesFound && (
             <div style={styles.storesFound}>
               <span style={{color: '#94a3b8'}}>Stores with results:</span>
-              {searchResults.meta.storesFound.map(store => (
-                <span key={store} style={styles.storeTag}>
-                  {store}
-                </span>
-              ))}
+              {searchResults.meta.storesFound.map(store => {
+                const config = getStoreConfig(store)
+                return (
+                  <span key={store} style={{...styles.storeTag, borderLeft: `3px solid ${config.color}`}}>
+                    {config.logo} {store}
+                  </span>
+                )
+              })}
             </div>
           )}
 
           {/* Results List */}
-          {searchResults.results.map((item, index) => (
-            <div key={item.id || index} style={styles.resultCard(item.isBestDeal)}>
-              {item.isBestDeal && <div style={styles.bestDealBadge}>BEST DEAL</div>}
-              
-              <div style={styles.storeLogo}>{item.logo}</div>
-              
-              <div>
-                <h4 style={{fontSize: '18px', fontWeight: 700, marginBottom: '8px'}}>
-                  {item.title}
-                </h4>
-                <div style={{display: 'flex', alignItems: 'center', gap: '16px', color: '#94a3b8'}}>
-                  <span style={{display: 'flex', alignItems: 'center', gap: '4px', color: '#fbbf24'}}>
-                    <Star size={16} fill="#fbbf24" /> {item.rating}
-                  </span>
-                  <span>{item.shipping}</span>
-                  <span style={{color: '#22c55e', fontSize: '12px', fontWeight: 700}}>
-                    {item.source}
-                  </span>
+          {searchResults.results.map((item, index) => {
+            const storeConfig = getStoreConfig(item.store)
+            return (
+              <div key={item.id || index} style={styles.resultCard(item.isBestDeal)}>
+                {item.isBestDeal && <div style={styles.bestDealBadge}>BEST DEAL</div>}
+
+                <div style={{...styles.storeLogo, background: `${storeConfig.color}20`}}>
+                  {storeConfig.logo}
                 </div>
-              </div>
 
-              <div style={{textAlign: 'right'}}>
-                <div style={styles.priceTag}>${item.price}</div>
-                {item.originalPrice && (
-                  <div style={{color: '#64748b', textDecoration: 'line-through'}}>
-                    ${item.originalPrice}
+                <div>
+                  <h4 style={{fontSize: '18px', fontWeight: 700, marginBottom: '8px'}}>
+                    {item.title}
+                  </h4>
+                  <div style={{display: 'flex', alignItems: 'center', gap: '16px', color: '#94a3b8'}}>
+                    <span style={{display: 'flex', alignItems: 'center', gap: '4px', color: '#fbbf24'}}>
+                      <Star size={16} fill="#fbbf24" /> {item.rating}
+                    </span>
+                    <span>{item.shipping}</span>
+                    <span style={{color: storeConfig.color, fontSize: '12px', fontWeight: 700}}>
+                      {item.source}
+                    </span>
                   </div>
-                )}
-              </div>
+                </div>
 
-              <a 
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  background: 'linear-gradient(135deg, #2563eb, #9333ea)',
-                  color: 'white',
-                  padding: '12px 24px',
-                  borderRadius: '12px',
-                  textDecoration: 'none',
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-              >
-                <ShoppingCart size={18} />
-                Buy
-              </a>
-            </div>
-          ))}
+                <div style={{textAlign: 'right'}}>
+                  <div style={styles.priceTag}>${item.price}</div>
+                  {item.originalPrice && (
+                    <div style={{color: '#64748b', textDecoration: 'line-through'}}>
+                      ${item.originalPrice}
+                    </div>
+                  )}
+                </div>
+
+                <a 
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    background: `linear-gradient(135deg, ${storeConfig.color}, #9333ea)`,
+                    color: 'white',
+                    padding: '12px 24px',
+                    borderRadius: '12px',
+                    textDecoration: 'none',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                >
+                  <ShoppingCart size={18} />
+                  Buy
+                </a>
+              </div>
+            )
+          })}
         </section>
       )}
     </div>

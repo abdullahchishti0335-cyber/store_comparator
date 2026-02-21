@@ -2,25 +2,6 @@ import { NextResponse } from 'next/server'
 
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY
 
-// Fallback realistic mock data for demo purposes
-const MOCK_DATA = {
-  ebay: [
-    { title: 'Apple iPhone 15 Pro Max 256GB - Unlocked', price: 1199, image: 'https://i.ebayimg.com/thumbs/images/g/8YUAAOSwHghl7lPq/s-l225.jpg', url: 'https://www.ebay.com/sch/i.html?_nkw=iphone' },
-    { title: 'Apple iPhone 14 Pro 128GB - Excellent Condition', price: 899, image: 'https://i.ebayimg.com/thumbs/images/g/8YUAAOSwHghl7lPq/s-l225.jpg', url: 'https://www.ebay.com/sch/i.html?_nkw=iphone' },
-    { title: 'iPhone 13 128GB - Factory Unlocked', price: 699, image: 'https://i.ebayimg.com/thumbs/images/g/8YUAAOSwHghl7lPq/s-l225.jpg', url: 'https://www.ebay.com/sch/i.html?_nkw=iphone' }
-  ],
-  walmart: [
-    { title: 'Apple iPhone 15 Pro Max, 256GB, Black Titanium', price: 1199, image: 'https://i5.walmartimages.com/asr/12345.jpg', url: 'https://www.walmart.com/search?q=iphone' },
-    { title: 'Apple iPhone 14, 128GB, Midnight', price: 799, image: 'https://i5.walmartimages.com/asr/12345.jpg', url: 'https://www.walmart.com/search?q=iphone' },
-    { title: 'Straight Talk Apple iPhone SE (3rd Gen), 64GB', price: 379, image: 'https://i5.walmartimages.com/asr/12345.jpg', url: 'https://www.walmart.com/search?q=iphone' }
-  ],
-  target: [
-    { title: 'Apple iPhone 15 Pro Max 256GB - Natural Titanium', price: 1199, image: 'https://target.scene7.com/is/image/Target/12345', url: 'https://www.target.com/s?searchTerm=iphone' },
-    { title: 'Apple iPhone 14 128GB - Midnight', price: 799, image: 'https://target.scene7.com/is/image/Target/12345', url: 'https://www.target.com/s?searchTerm=iphone' },
-    { title: 'Apple iPhone 13 128GB - Blue', price: 699, image: 'https://target.scene7.com/is/image/Target/12345', url: 'https://www.target.com/s?searchTerm=iphone' }
-  ]
-}
-
 export async function POST(request) {
   const { query, stores } = await request.json()
 
@@ -34,9 +15,9 @@ export async function POST(request) {
   const startTime = Date.now()
   const allResults = []
   const errors = []
-  const usedMockData = []
+  const sourcesUsed = []
 
-  // 1. AMAZON API - REAL DATA (Working)
+  // 1. AMAZON API - REAL DATA
   if (!stores || stores.includes('Amazon')) {
     try {
       console.log('Calling Amazon API...')
@@ -75,10 +56,11 @@ export async function POST(request) {
               inStock: true,
               shipping: '2 days',
               isReal: true,
-              source: 'RapidAPI (Real)'
+              source: 'RapidAPI'
             })
           }
         })
+        sourcesUsed.push('Amazon')
         console.log(`✅ Amazon: ${products.length} results`)
       } else {
         errors.push(`Amazon: HTTP ${response.status}`)
@@ -88,179 +70,11 @@ export async function POST(request) {
     }
   }
 
-  // 2. EBAY - Try API first, fallback to mock if fails
-  if (!stores || stores.includes('eBay')) {
-    let ebaySuccess = false
-
+  // 2. REAL-TIME PRODUCT SEARCH API - REAL DATA FROM GOOGLE SHOPPING
+  // This covers Walmart, Target, Best Buy, eBay, and many other stores
+  if (!stores || stores.includes('Walmart') || stores.includes('Target') || stores.includes('eBay') || stores.includes('Best Buy')) {
     try {
-      console.log('Trying eBay API...')
-      const response = await fetch(
-        `https://ebay-search-result.p.rapidapi.com/search/${encodeURIComponent(query)}`,
-        {
-          headers: {
-            'X-RapidAPI-Key': RAPIDAPI_KEY,
-            'X-RapidAPI-Host': 'ebay-search-result.p.rapidapi.com'
-          },
-          cache: 'no-store'
-        }
-      )
-
-      if (response.ok) {
-        const data = await response.json()
-        const items = data.results || []
-
-        if (items.length > 0) {
-          items.slice(0, 3).forEach((p, idx) => {
-            let price = 0
-            if (p.price) {
-              if (typeof p.price === 'string') price = parseFloat(p.price.replace(/[^0-9.]/g, ''))
-              else if (typeof p.price === 'number') price = p.price
-            }
-
-            if (price > 0 && p.title) {
-              allResults.push({
-                id: `ebay-${idx}`,
-                store: 'eBay',
-                logo: '🏷️',
-                color: '#E53238',
-                title: p.title,
-                price: price,
-                originalPrice: null,
-                rating: 4.4,
-                reviews: Math.floor(Math.random() * 5000),
-                image: p.image,
-                url: p.url,
-                inStock: true,
-                shipping: 'Varies',
-                isReal: true,
-                source: 'RapidAPI (Real)'
-              })
-            }
-          })
-          ebaySuccess = true
-          console.log(`✅ eBay: ${items.length} results`)
-        }
-      }
-    } catch (e) {
-      console.log('eBay API failed:', e.message)
-    }
-
-    // Fallback to mock data if API fails or returns empty
-    if (!ebaySuccess) {
-      console.log('⚠️ Using eBay mock data')
-      usedMockData.push('eBay')
-      MOCK_DATA.ebay.forEach((p, idx) => {
-        allResults.push({
-          id: `ebay-${idx}`,
-          store: 'eBay',
-          logo: '🏷️',
-          color: '#E53238',
-          title: p.title,
-          price: p.price,
-          originalPrice: null,
-          rating: 4.4,
-          reviews: Math.floor(Math.random() * 5000),
-          image: p.image,
-          url: p.url,
-          inStock: true,
-          shipping: 'Varies',
-          isReal: false,
-          source: 'Mock Data (Demo)'
-        })
-      })
-    }
-  }
-
-  // 3. WALMART - Try API first, fallback to mock if fails
-  if (!stores || stores.includes('Walmart')) {
-    let walmartSuccess = false
-
-    try {
-      console.log('Trying Walmart API...')
-      // Try alternative endpoint
-      const response = await fetch(
-        `https://walmart28.p.rapidapi.com/products/search?query=${encodeURIComponent(query)}`,
-        {
-          headers: {
-            'X-RapidAPI-Key': RAPIDAPI_KEY,
-            'X-RapidAPI-Host': 'walmart28.p.rapidapi.com'
-          },
-          cache: 'no-store'
-        }
-      )
-
-      if (response.ok) {
-        const data = await response.json()
-        const items = data.products || data.items || []
-
-        if (items.length > 0) {
-          items.slice(0, 3).forEach((p, idx) => {
-            let price = 0
-            if (p.price) {
-              if (typeof p.price === 'string') price = parseFloat(p.price.replace(/[^0-9.]/g, ''))
-              else if (typeof p.price === 'number') price = p.price
-            }
-
-            if (price > 0 && p.title) {
-              allResults.push({
-                id: `walmart-${idx}`,
-                store: 'Walmart',
-                logo: '🛒',
-                color: '#0071CE',
-                title: p.title,
-                price: price,
-                originalPrice: null,
-                rating: 4.3,
-                reviews: Math.floor(Math.random() * 3000),
-                image: p.image,
-                url: p.url,
-                inStock: true,
-                shipping: '2 days',
-                isReal: true,
-                source: 'RapidAPI (Real)'
-              })
-            }
-          })
-          walmartSuccess = true
-          console.log(`✅ Walmart: ${items.length} results`)
-        }
-      }
-    } catch (e) {
-      console.log('Walmart API failed:', e.message)
-    }
-
-    // Fallback to mock data
-    if (!walmartSuccess) {
-      console.log('⚠️ Using Walmart mock data')
-      usedMockData.push('Walmart')
-      MOCK_DATA.walmart.forEach((p, idx) => {
-        allResults.push({
-          id: `walmart-${idx}`,
-          store: 'Walmart',
-          logo: '🛒',
-          color: '#0071CE',
-          title: p.title,
-          price: p.price,
-          originalPrice: null,
-          rating: 4.3,
-          reviews: Math.floor(Math.random() * 3000),
-          image: p.image,
-          url: p.url,
-          inStock: true,
-          shipping: '2 days',
-          isReal: false,
-          source: 'Mock Data (Demo)'
-        })
-      })
-    }
-  }
-
-  // 4. TARGET - Try API first, fallback to mock if fails
-  if (!stores || stores.includes('Target')) {
-    let targetSuccess = false
-
-    try {
-      console.log('Trying Target API...')
+      console.log('Calling Real-Time Product Search API (Google Shopping)...')
       const response = await fetch(
         `https://real-time-product-search.p.rapidapi.com/search-v2?q=${encodeURIComponent(query)}&country=us`,
         {
@@ -276,69 +90,86 @@ export async function POST(request) {
         const data = await response.json()
         const products = data.data?.products || []
 
-        // Filter for Target products
-        const targetProducts = products.filter(p => 
-          p.source?.toLowerCase().includes('target') || 
-          p.link?.includes('target.com')
-        )
+        console.log(`Found ${products.length} products from Google Shopping`)
 
-        if (targetProducts.length > 0) {
-          targetProducts.slice(0, 3).forEach((p, idx) => {
-            const price = p.price || p.offer?.price || 0
-            const title = p.title || p.name
-            const url = p.link || p.url
+        // Map Google Shopping results to our format
+        products.forEach((p, idx) => {
+          // Determine store name from source or merchant
+          let storeName = p.source || p.merchant || 'Store'
+          let storeLogo = '🏪'
+          let storeColor = '#666666'
 
-            if (price > 0 && title) {
+          // Normalize store names
+          const sourceLower = storeName.toLowerCase()
+          if (sourceLower.includes('walmart')) {
+            storeName = 'Walmart'
+            storeLogo = '🛒'
+            storeColor = '#0071CE'
+          } else if (sourceLower.includes('target')) {
+            storeName = 'Target'
+            storeLogo = '🎯'
+            storeColor = '#CC0000'
+          } else if (sourceLower.includes('ebay')) {
+            storeName = 'eBay'
+            storeLogo = '🏷️'
+            storeColor = '#E53238'
+          } else if (sourceLower.includes('best buy')) {
+            storeName = 'Best Buy'
+            storeLogo = '💻'
+            storeColor = '#0046BE'
+          } else if (sourceLower.includes('amazon')) {
+            storeName = 'Amazon'
+            storeLogo = '📦'
+            storeColor = '#FF9900'
+          }
+
+          // Check if user requested this store
+          if (stores && !stores.includes(storeName)) return
+
+          const price = p.price || p.offer?.price || 0
+          const title = p.title || p.name
+          const url = p.link || p.url
+          const image = p.thumbnail || p.image
+
+          if (price > 0 && title) {
+            // Avoid duplicates (same store + similar title)
+            const isDuplicate = allResults.some(r => 
+              r.store === storeName && 
+              r.title.toLowerCase().includes(title.toLowerCase().substring(0, 20))
+            )
+
+            if (!isDuplicate) {
               allResults.push({
-                id: `target-${idx}`,
-                store: 'Target',
-                logo: '🎯',
-                color: '#CC0000',
+                id: `${storeName.toLowerCase()}-${idx}`,
+                store: storeName,
+                logo: storeLogo,
+                color: storeColor,
                 title: title,
                 price: price,
                 originalPrice: null,
-                rating: p.rating?.average || 4.5,
-                reviews: p.reviews_count || Math.floor(Math.random() * 2000),
-                image: p.thumbnail || p.image,
+                rating: p.rating?.average || 4.0,
+                reviews: p.reviews_count || Math.floor(Math.random() * 1000),
+                image: image,
                 url: url,
                 inStock: true,
-                shipping: '2 days',
+                shipping: 'Varies',
                 isReal: true,
-                source: 'RapidAPI (Real)'
+                source: 'Google Shopping'
               })
+
+              if (!sourcesUsed.includes(storeName)) {
+                sourcesUsed.push(storeName)
+              }
             }
-          })
-          targetSuccess = true
-          console.log(`✅ Target: ${targetProducts.length} results`)
-        }
+          }
+        })
+
+        console.log(`✅ Google Shopping: ${products.length} products processed`)
+      } else {
+        errors.push(`Product Search: HTTP ${response.status}`)
       }
     } catch (e) {
-      console.log('Target API failed:', e.message)
-    }
-
-    // Fallback to mock data
-    if (!targetSuccess) {
-      console.log('⚠️ Using Target mock data')
-      usedMockData.push('Target')
-      MOCK_DATA.target.forEach((p, idx) => {
-        allResults.push({
-          id: `target-${idx}`,
-          store: 'Target',
-          logo: '🎯',
-          color: '#CC0000',
-          title: p.title,
-          price: p.price,
-          originalPrice: null,
-          rating: 4.5,
-          reviews: Math.floor(Math.random() * 2000),
-          image: p.image,
-          url: p.url,
-          inStock: true,
-          shipping: '2 days',
-          isReal: false,
-          source: 'Mock Data (Demo)'
-        })
-      })
+      errors.push(`Product Search: ${e.message}`)
     }
   }
 
@@ -369,9 +200,19 @@ export async function POST(request) {
 
   const searchTime = Date.now() - startTime
 
-  console.log(`\n📊 TOTAL: ${allResults.length} results from ${[...new Set(allResults.map(r => r.store))].join(', ')}`)
-  if (usedMockData.length > 0) console.log(`⚠️ Mock data used for: ${usedMockData.join(', ')}`)
+  console.log(`\n📊 TOTAL: ${allResults.length} results from ${sourcesUsed.join(', ')}`)
   if (errors.length > 0) console.log('❌ Errors:', errors)
+
+  if (allResults.length === 0) {
+    return NextResponse.json({
+      success: false,
+      error: 'No results found',
+      details: errors,
+      message: 'No results from Amazon or Google Shopping',
+      query,
+      timestamp: new Date().toISOString()
+    }, { status: 404 })
+  }
 
   return NextResponse.json({
     success: true,
@@ -381,7 +222,7 @@ export async function POST(request) {
       searchTimeMs: searchTime,
       totalResults: allResults.length,
       storesFound: [...new Set(allResults.map(r => r.store))],
-      mockDataUsed: usedMockData,
+      sourcesUsed: sourcesUsed,
       errors: errors.length > 0 ? errors : undefined
     },
     timestamp: new Date().toISOString()
