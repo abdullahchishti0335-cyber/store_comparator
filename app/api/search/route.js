@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY
-const APIFY_TOKEN = process.env.APIFY_TOKEN
+const SERPER_API_KEY = process.env.SERPER_API_KEY
 
 export async function POST(request) {
   const { query, stores } = await request.json()
@@ -71,102 +71,44 @@ export async function POST(request) {
     }
   }
 
-  // 2. APIFY GOOGLE SHOPPING SCRAPER - With longer timeout
+  // 2. SERPER GOOGLE SHOPPING API - Fast and reliable
   if (!stores || stores.some(s => ['Walmart', 'Target', 'eBay', 'Best Buy'].includes(s))) {
     try {
-      console.log('Calling Apify Google Shopping Scraper...')
+      console.log('Calling Serper Google Shopping API...')
 
-      // Start the actor run with shorter timeout settings
-      const runResponse = await fetch('https://api.apify.com/v2/acts/consummate_mandala~google-shopping-scraper/runs', {
+      const response = await fetch('https://google.serper.dev/shopping', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${APIFY_TOKEN}`
+          'X-API-KEY': SERPER_API_KEY,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          searchQueries: [query],
-          maxResultsPerQuery: 8, // Reduced for faster results
-          country: 'us',
-          useResidentialProxy: false,
-          timeout: 20 // 20 seconds max for the scraper
+          q: query,
+          gl: 'us',
+          hl: 'en',
+          num: 20
         })
       })
 
-      if (!runResponse.ok) {
-        throw new Error(`Apify run failed: ${runResponse.status}`)
+      if (!response.ok) {
+        throw new Error(`Serper API error: ${response.status}`)
       }
 
-      const runData = await runResponse.json()
-      const runId = runData.data.id
-      const datasetId = runData.data.defaultDatasetId
+      const data = await response.json()
+      const products = data.shopping || []
 
-      console.log(`Apify run started: ${runId}`)
-
-      // Wait for run to complete with longer timeout (45 seconds total)
-      let runComplete = false
-      let attempts = 0
-      const maxAttempts = 45 // 45 seconds
-
-      while (!runComplete && attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 1000))
-
-        const statusResponse = await fetch(`https://api.apify.com/v2/actor-runs/${runId}`, {
-          headers: {
-            'Authorization': `Bearer ${APIFY_TOKEN}`
-          }
-        })
-
-        if (statusResponse.ok) {
-          const statusData = await statusResponse.json()
-          const status = statusData.data.status
-
-          if (status === 'SUCCEEDED') {
-            runComplete = true
-            console.log('Apify run completed successfully')
-          } else if (status === 'FAILED' || status === 'TIMED_OUT' || status === 'ABORTED') {
-            throw new Error(`Apify run ${status}`)
-          }
-        }
-        attempts++
-      }
-
-      if (!runComplete) {
-        // Try to abort the run if it's taking too long
-        try {
-          await fetch(`https://api.apify.com/v2/actor-runs/${runId}/abort`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${APIFY_TOKEN}`
-            }
-          })
-        } catch (e) {
-          // Ignore abort errors
-        }
-        throw new Error('Apify run timeout (45s) - scraper took too long')
-      }
-
-      // Get results from dataset
-      const datasetResponse = await fetch(`https://api.apify.com/v2/datasets/${datasetId}/items`, {
-        headers: {
-          'Authorization': `Bearer ${APIFY_TOKEN}`
-        }
-      })
-
-      if (!datasetResponse.ok) {
-        throw new Error(`Failed to get dataset: ${datasetResponse.status}`)
-      }
-
-      const products = await datasetResponse.json()
-      console.log(`Apify returned ${products.length} products`)
+      console.log(`Serper returned ${products.length} shopping results`)
 
       // Process each product
       products.forEach((p, idx) => {
-        const sellerName = (p.seller || p.source || '').toLowerCase()
+        const sellerName = (p.merchant || p.source || '').toLowerCase()
+        console.log(`Product ${idx}: "${p.title}" from "${sellerName}"`)
 
         let storeName = null
         let storeLogo = '🏪'
         let storeColor = '#666666'
 
+        // Match store names
         if (sellerName.includes('walmart')) {
           storeName = 'Walmart'
           storeLogo = '🛒'
@@ -185,25 +127,31 @@ export async function POST(request) {
           storeColor = '#0046BE'
         }
 
-        if (!storeName) return
-        if (stores && !stores.includes(storeName)) return
-
-        let price = 0
-        if (p.price) {
-          if (typeof p.price === 'string') {
-            price = parseFloat(p.price.replace(/[^0-9.]/g, ''))
-          } else if (typeof p.price === 'number') {
-            price = p.price
-          } else if (p.price.value) {
-            price = parseFloat(p.price.value)
-          }
+        // Skip if not a requested store
+        if (!storeName) {
+          console.log(`  Skipping: unknown seller`)
+          return
         }
 
-        const title = p.title || p.name
-        const url = p.url || p.link
-        const image = p.image || p.thumbnail
+        if (stores && !stores.includes(storeName)) {
+          console.log(`  Skipping: ${storeName} not selected`)
+          return
+        }
+
+        // Parse price
+        let price = 0
+        if (p.price) {
+          price = parseFloat(p.price.toString().replace(/[^0-9.]/g, ''))
+        } else if (p.extracted_price) {
+          price = p.extracted_price
+        }
+
+        const title = p.title
+        const url = p.link || p.product_link
+        const image = p.imageUrl || p.thumbnail
 
         if (price > 0 && title) {
+          // Avoid duplicates
           const isDuplicate = allResults.some(r => 
             r.store === storeName && 
             r.title.toLowerCase().includes(title.toLowerCase().substring(0, 20))
@@ -211,7 +159,7 @@ export async function POST(request) {
 
           if (!isDuplicate) {
             allResults.push({
-              id: `${storeName.toLowerCase()}-apify-${idx}`,
+              id: `${storeName.toLowerCase()}-serper-${idx}`,
               store: storeName,
               logo: storeLogo,
               color: storeColor,
@@ -225,21 +173,22 @@ export async function POST(request) {
               inStock: true,
               shipping: p.shipping || 'Varies',
               isReal: true,
-              source: 'Apify Google Shopping'
+              source: 'Serper API'
             })
 
             if (!sourcesUsed.includes(storeName)) {
               sourcesUsed.push(storeName)
             }
+            console.log(`  ✅ Added ${storeName}: $${price}`)
           }
         }
       })
 
-      console.log(`✅ Apify: processed, found: ${sourcesUsed.filter(s => s !== 'Amazon').join(', ')}`)
+      console.log(`✅ Serper: processed, found: ${sourcesUsed.filter(s => s !== 'Amazon').join(', ')}`)
 
     } catch (e) {
-      console.error('Apify error:', e)
-      errors.push(`Apify: ${e.message}`)
+      console.error('Serper error:', e)
+      errors.push(`Serper: ${e.message}`)
     }
   }
 
@@ -278,7 +227,7 @@ export async function POST(request) {
       success: false,
       error: 'No results found',
       details: errors,
-      message: 'No results from Amazon or Apify',
+      message: 'No results from Amazon or Serper',
       query,
       timestamp: new Date().toISOString()
     }, { status: 404 })
