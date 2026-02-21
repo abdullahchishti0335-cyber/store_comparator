@@ -1,10 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Search, TrendingDown, Store, Star, ShoppingCart, Heart, RefreshCw, ArrowUpRight, X } from 'lucide-react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts'
+import { useState } from 'react'
+import { Search, TrendingDown, Star, ShoppingCart, RefreshCw } from 'lucide-react'
 
-// ALL STYLES IN JAVASCRIPT
 const styles = {
   container: {
     minHeight: '100vh',
@@ -241,6 +239,20 @@ const styles = {
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
   },
+  storesFound: {
+    marginBottom: '24px', 
+    display: 'flex', 
+    gap: '12px', 
+    flexWrap: 'wrap',
+    alignItems: 'center',
+  },
+  storeTag: {
+    background: 'rgba(255,255,255,0.1)',
+    padding: '4px 12px',
+    borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: 600,
+  },
 }
 
 const AVAILABLE_STORES = [
@@ -252,9 +264,9 @@ const AVAILABLE_STORES = [
 
 export default function LivePriceComparator() {
   const [query, setQuery] = useState('')
-  const [selectedStores, setSelectedStores] = useState(['Amazon', 'eBay', 'Walmart'])
+  const [selectedStores, setSelectedStores] = useState(['Amazon', 'eBay', 'Walmart', 'Target'])
   const [loading, setLoading] = useState(false)
-  const [searchResults, setSearchResults] = useState(null)  // FIXED: renamed from 'results'
+  const [searchResults, setSearchResults] = useState(null)
   const [searchProgress, setSearchProgress] = useState(0)
 
   const toggleStore = (storeName) => {
@@ -269,7 +281,7 @@ export default function LivePriceComparator() {
     if (!query.trim() || selectedStores.length === 0) return
     
     setLoading(true)
-    setSearchResults(null)  // FIXED: use setSearchResults
+    setSearchResults(null)
     setSearchProgress(0)
     
     const progressInterval = setInterval(() => {
@@ -286,7 +298,7 @@ export default function LivePriceComparator() {
       const data = await response.json()
       
       if (data.success) {
-        setSearchResults(data)  // FIXED: use setSearchResults
+        setSearchResults(data)
       } else {
         console.error('Search failed:', data.error)
       }
@@ -393,9 +405,21 @@ export default function LivePriceComparator() {
               <div style={{...styles.statValue, background: 'linear-gradient(135deg, #10b981, #059669)', WebkitBackgroundClip: 'text'}}>
                 {searchResults.results.length}
               </div>
-              <div style={{color: '#94a3b8', fontSize: '14px'}}>Stores Found</div>
+              <div style={{color: '#94a3b8', fontSize: '14px'}}>Results Found</div>
             </div>
           </div>
+
+          {/* Stores Found */}
+          {searchResults?.meta?.storesFound && (
+            <div style={styles.storesFound}>
+              <span style={{color: '#94a3b8'}}>Stores with results:</span>
+              {searchResults.meta.storesFound.map(store => (
+                <span key={store} style={styles.storeTag}>
+                  {store}
+                </span>
+              ))}
+            </div>
+          )}
 
           {/* Results List */}
           {searchResults.results.map((item, index) => (
