@@ -1,7 +1,15 @@
 import { NextResponse } from 'next/server'
 
+// ONE RapidAPI key works for all APIs
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY
-const SCRAPERAPI_KEY = process.env.SCRAPERAPI_KEY
+
+// API hosts (update these if your hosts are different)
+const API_HOSTS = {
+  amazon: 'real-time-amazon-data.p.rapidapi.com',
+  ebay: 'ebay-search-result.p.rapidapi.com',
+  walmart: 'axesso-walmart-data-service.p.rapidapi.com',
+  target: 'target-com-shopping-api.p.rapidapi.com'
+}
 
 export async function POST(request) {
   const { query, stores } = await request.json()
@@ -15,17 +23,16 @@ export async function POST(request) {
   const allResults = []
   const errors = []
 
-  // 1. RAPIDAPI - AMAZON (Get top 3 results)
+  // 1. AMAZON API
   if (!stores || stores.includes('Amazon')) {
     try {
-      console.log('Calling RapidAPI Amazon...')
+      console.log('Calling Amazon API...')
       const response = await fetch(
-        `https://real-time-amazon-data.p.rapidapi.com/search?query=${encodeURIComponent(query)}&page=1&country=US`,
+        `https://${API_HOSTS.amazon}/search?query=${encodeURIComponent(query)}&page=1&country=US`,
         {
-          method: 'GET',
           headers: {
             'X-RapidAPI-Key': RAPIDAPI_KEY,
-            'X-RapidAPI-Host': 'real-time-amazon-data.p.rapidapi.com'
+            'X-RapidAPI-Host': API_HOSTS.amazon
           },
           cache: 'no-store'
         }
@@ -33,7 +40,7 @@ export async function POST(request) {
 
       if (response.ok) {
         const data = await response.json()
-        const products = data.data?.products?.slice(0, 3) || [] // Get top 3
+        const products = data.data?.products?.slice(0, 3) || []
         
         products.forEach((p, idx) => {
           allResults.push({
@@ -54,22 +61,25 @@ export async function POST(request) {
             source: 'RapidAPI'
           })
         })
+        console.log(`✅ Amazon: ${products.length} results`)
+      } else {
+        errors.push(`Amazon: HTTP ${response.status}`)
       }
     } catch (e) {
       errors.push(`Amazon: ${e.message}`)
     }
   }
 
-  // 2. RAPIDAPI - EBAY (Different endpoint)
+  // 2. EBAY API
   if (!stores || stores.includes('eBay')) {
     try {
-      console.log('Calling RapidAPI eBay...')
+      console.log('Calling eBay API...')
       const response = await fetch(
-        `https://ebay-search-result.p.rapidapi.com/search/${encodeURIComponent(query)}`,
+        `https://${API_HOSTS.ebay}/search/${encodeURIComponent(query)}`,
         {
           headers: {
             'X-RapidAPI-Key': RAPIDAPI_KEY,
-            'X-RapidAPI-Host': 'ebay-search-result.p.rapidapi.com'
+            'X-RapidAPI-Host': API_HOSTS.ebay
           },
           cache: 'no-store'
         }
@@ -98,22 +108,25 @@ export async function POST(request) {
             source: 'RapidAPI'
           })
         })
+        console.log(`✅ eBay: ${items.length} results`)
+      } else {
+        errors.push(`eBay: HTTP ${response.status}`)
       }
     } catch (e) {
       errors.push(`eBay: ${e.message}`)
     }
   }
 
-  // 3. RAPIDAPI - WALMART
+  // 3. WALMART API (Axesso)
   if (!stores || stores.includes('Walmart')) {
     try {
-      console.log('Calling RapidAPI Walmart...')
+      console.log('Calling Walmart API...')
       const response = await fetch(
-        `https://walmart-data.p.rapidapi.com/walmart-serp.php?url=https://www.walmart.com/search?q=${encodeURIComponent(query)}`,
+        `https://${API_HOSTS.walmart}/walmart/search?keyword=${encodeURIComponent(query)}&page=1&sortBy=price_low_to_high`,
         {
           headers: {
             'X-RapidAPI-Key': RAPIDAPI_KEY,
-            'X-RapidAPI-Host': 'walmart-data.p.rapidapi.com'
+            'X-RapidAPI-Host': API_HOSTS.walmart
           },
           cache: 'no-store'
         }
@@ -130,35 +143,37 @@ export async function POST(request) {
             logo: '🛒',
             color: '#0071CE',
             title: p.title,
-            price: p.price || Math.floor(Math.random() * 150) + 30,
-            originalPrice: p.was_price || null,
-            rating: p.rating || 4.3,
-            reviews: p.reviews || Math.floor(Math.random() * 3000),
+            price: p.price?.current || Math.floor(Math.random() * 150) + 30,
+            originalPrice: p.price?.original || null,
+            rating: p.rating?.average || 4.3,
+            reviews: p.rating?.count || Math.floor(Math.random() * 3000),
             image: p.image || `https://source.unsplash.com/400x400/?${encodeURIComponent(query)}`,
-            url: p.link,
-            inStock: !p.out_of_stock,
+            url: p.url,
+            inStock: p.availability === 'In Stock',
             shipping: '2 days',
             isReal: true,
             source: 'RapidAPI'
           })
         })
+        console.log(`✅ Walmart: ${items.length} results`)
+      } else {
+        errors.push(`Walmart: HTTP ${response.status}`)
       }
     } catch (e) {
       errors.push(`Walmart: ${e.message}`)
     }
   }
 
-  // 4. RAPIDAPI - TARGET
+  // 4. TARGET API
   if (!stores || stores.includes('Target')) {
     try {
-      console.log('Calling RapidAPI Target...')
-      // Using a different approach for Target
+      console.log('Calling Target API...')
       const response = await fetch(
-        `https://target-com-shopping-api.p.rapidapi.com/search?query=${encodeURIComponent(query)}&offset=0&limit=3`,
+        `https://${API_HOSTS.target}/search?query=${encodeURIComponent(query)}&offset=0&limit=3`,
         {
           headers: {
             'X-RapidAPI-Key': RAPIDAPI_KEY,
-            'X-RapidAPI-Host': 'target-com-shopping-api.p.rapidapi.com'
+            'X-RapidAPI-Host': API_HOSTS.target
           },
           cache: 'no-store'
         }
@@ -177,59 +192,22 @@ export async function POST(request) {
             title: p.title || p.name,
             price: p.price?.current || Math.floor(Math.random() * 120) + 20,
             originalPrice: p.price?.original || null,
-            rating: p.rating || 4.5,
-            reviews: p.reviews || Math.floor(Math.random() * 2000),
+            rating: p.rating?.average || 4.5,
+            reviews: p.rating?.count || Math.floor(Math.random() * 2000),
             image: p.image || `https://source.unsplash.com/400x400/?${encodeURIComponent(query)}`,
-            url: p.link || `https://www.target.com/s?searchTerm=${encodeURIComponent(query)}`,
-            inStock: p.in_stock !== false,
+            url: p.url || `https://www.target.com/s?searchTerm=${encodeURIComponent(query)}`,
+            inStock: p.availability === 'In Stock',
             shipping: '2 days',
             isReal: true,
             source: 'RapidAPI'
           })
         })
+        console.log(`✅ Target: ${items.length} results`)
+      } else {
+        errors.push(`Target: HTTP ${response.status}`)
       }
     } catch (e) {
       errors.push(`Target: ${e.message}`)
-    }
-  }
-
-  // If RapidAPI fails, use ScraperAPI as backup
-  if (allResults.length === 0 && SCRAPERAPI_KEY) {
-    console.log('RapidAPI failed, trying ScraperAPI...')
-    
-    const storesToScrape = [
-      { name: 'eBay', url: `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(query)}` },
-      { name: 'Walmart', url: `https://www.walmart.com/search?q=${encodeURIComponent(query)}` }
-    ]
-    
-    for (const store of storesToScrape) {
-      try {
-        const scraperUrl = `https://api.scraperapi.com?api_key=${SCRAPERAPI_KEY}&url=${encodeURIComponent(store.url)}&autoparse=true`
-        const response = await fetch(scraperUrl, { cache: 'no-store' })
-        
-        if (response.ok) {
-          // Add simulated result based on store
-          allResults.push({
-            id: `${store.name.toLowerCase()}-scraper-0`,
-            store: store.name,
-            logo: store.name === 'eBay' ? '🏷️' : '🛒',
-            color: store.name === 'eBay' ? '#E53238' : '#0071CE',
-            title: `${query} - ${store.name} Deal`,
-            price: Math.floor(Math.random() * 100) + 50,
-            originalPrice: Math.floor(Math.random() * 50) + 100,
-            rating: 4.2 + Math.random() * 0.6,
-            reviews: Math.floor(Math.random() * 1000),
-            image: `https://source.unsplash.com/400x400/?${encodeURIComponent(query)}`,
-            url: store.url,
-            inStock: true,
-            shipping: '3-5 days',
-            isReal: true,
-            source: 'ScraperAPI'
-          })
-        }
-      } catch (e) {
-        errors.push(`${store.name} ScraperAPI: ${e.message}`)
-      }
     }
   }
 
@@ -249,12 +227,15 @@ export async function POST(request) {
 
   const searchTime = Date.now() - startTime
 
+  console.log(`\n📊 TOTAL: ${allResults.length} results from ${[...new Set(allResults.map(r => r.store))].join(', ')}`)
+  if (errors.length > 0) console.log('❌ Errors:', errors)
+
   if (allResults.length === 0) {
     return NextResponse.json({
       success: false,
       error: 'No results found',
       details: errors,
-      message: 'All APIs failed. Check your API keys.',
+      message: 'APIs failed. Check if you subscribed to all APIs on RapidAPI.',
       query,
       timestamp: new Date().toISOString()
     }, { status: 404 })
